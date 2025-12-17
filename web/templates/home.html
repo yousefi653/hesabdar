@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Home{% endblock %}
+
+{% block nav %}
+    <li class="nav-item">
+        <a href="/account/logout/" class="nav-link">خروج</a>
+    </li>
+{% endblock %}
+
+{% block content %}
+    <div class="container text-center">
+        <div class="row">
+            <div class="col-4">
+                <div class="card" style="width: 18rem;">
+                    {% load static %}
+                    <img src="{% static 'web/img/empty_kifpol.jpg' %}" class="card-img-top" height="200">
+                    <div class="card-body">
+                        <h5 class="card-title">(expense)خرج</h5>
+                        <p class="card-text">بخشی برای دیدن خرج ها و ویرایش،حذف،اضافه کردن خرج ها</p>
+                        <a href="/account/expense/" class="btn btn-primary">خرجها</a>
+                    </div>
+                </div>
+            </div>  
+            <div class="col-4">
+                <div class="card" style="width: 18rem;">
+                    <img src="{% static 'web/img/very_pol.jpg' %}" class="card-img-top" height="200">
+                    <div class="card-body">
+                        <h5 class="card-title">(income)درآمد</h5>
+                        <p class="card-text">بخشی برای دیدن درآمد ها و ویرایش،حذف،اضافه کردن درآمد ها</p>
+                        <a href="/account/income/" class="btn btn-primary">درآمدها</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

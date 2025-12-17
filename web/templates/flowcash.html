@@ -1,17 +1,16 @@
 {% extends 'base.html' %}
-{% block title %}Login-page{% endblock %}
+{% block title %}اضافه کردن {{ title }}{% endblock %}
 
 {% block content %}
     <div dir="auto">
-        <h2>حسابدار</h2>
-        <p>به برنامه حسابدار خوش آمدید جایی که میتونی دخل و خرج خودت رو یادداشت کنی</p>
+        <h2>اضافه کردن {{title}}</h2>
+        <p>در این صفحه میتونی {{title}} هایی که داشتی رو اضافه کنی تا در قسمت {{title}} هات بتونی ببینیشون</p>
         <div class="container">
             <div class="row">
                 <div class="col-6">
                     <form method="post" class="form-control">
-                        <h3 class="text-center">ورود</h3>
                         {{ form.as_p }}
-                        <button class="btn btn-success" type="submit">Login</button>
+                        <button class="btn btn-success" type="submit">Ok</button>
                     </form>
                 </div>
             </div>
