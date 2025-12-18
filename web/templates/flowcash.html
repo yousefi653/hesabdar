@@ -1,16 +1,20 @@
 {% extends 'base.html' %}
 {% block title %}اضافه کردن {{ title }}{% endblock %}
 
+{% block user %}
+    {{ request.user.username }}
+{% endblock %}
+
 {% block content %}
     <div dir="auto">
-        <h2>اضافه کردن {{title}}</h2>
-        <p>در این صفحه میتونی {{title}} هایی که داشتی رو اضافه کنی تا در قسمت {{title}} هات بتونی ببینیشون</p>
+        <h2><b><big>اضافه کردن {{title}}</big></b></h2>
+        <p><b>در این صفحه میتونی {{title}} هایی که داشتی رو اضافه کنی تا در قسمت {{title}} هات بتونی ببینیشون.</b></p>
         <div class="container">
             <div class="row">
                 <div class="col-6">
-                    <form method="post" class="form-control">
+                    <form method="post" class="form-control" style="background-color: #F2D56D;">
                         {{ form.as_p }}
-                        <button class="btn btn-success" type="submit">Ok</button>
+                        <button class="btn btn-success" type="submit">اضافه کن</button>
                     </form>
                 </div>
             </div>

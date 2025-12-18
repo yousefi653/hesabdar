@@ -4,7 +4,7 @@ urlpatterns = [
     path("account/register/", views.register),
     path("account/login/", views.login),
     path("account/logout/", views.logout),
-    path("home/", views.home),
+    path("", views.home),
     path("account/expense/", views.expense),
     path("account/income/", views.income),
     path("account/create_expense/", views.createExpense),

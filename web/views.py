@@ -9,11 +9,47 @@ import jdatetime
 import datetime
 
 # Create your views here.
-def clean_number(data):
+def clean(data):
     for item in data:
         item.amount = f"{item.amount:,}"
+        item.date = jdatetime.date.fromgregorian(date=item.date)
+        item.date = jdatetime.datetime.strftime(item.date, "%Y/%m-%b/%d-%a")
+        item.time = datetime.time.strftime(item.time, "%I:%M-%p")
     return data
 
+
+def get_queryset(request, data):
+    q = request.GET.get('title')
+    if q:
+        data = data.filter(title__contains = q)
+    
+    q = request.GET.get("amount")
+    if q:
+        q = int(q)
+        if q > 0:
+            data = data.filter(amount__gte=q)
+        else:
+            data = data.filter(amount__lte=q*-1)
+    
+    q = request.GET.get("sort_date")
+    if q:
+        if q == 'date':
+            data = data.order_by("date")
+        elif q == '-date' :
+            data = data.order_by('-date')
+        else:
+            pass
+    
+    q = request.GET.get("sort_id")
+    if q:
+        if q == 'id':
+            data = data.order_by('id')
+        elif q == '-id':
+            data = data.order_by("-id")
+        else:
+            pass
+
+    return data
 
 
 @csrf_exempt
@@ -22,10 +58,12 @@ def register(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect(to="/home/")
+            return redirect(to="/")
 
     else:
         form = RegisterForm()
+    if request.user.is_authenticated:
+        return redirect("/")
     return render(request, 'register.html', context={'form':form})
         
 
@@ -40,10 +78,13 @@ def login(request):
             user = authenticate(request, username=username, password=password)
             if user:
                 dj_login(request, user=user)
-                return redirect(to="/home/")
+                return redirect(to="/")
     else:
         form = LoginForm()
+    if request.user.is_authenticated:
+        return redirect("/")
     return render(request, 'login.html', context={"form": form})
+
 
 @csrf_exempt
 @login_required(login_url='/account/login/')
@@ -64,13 +105,11 @@ def home(request):
 @login_required(login_url="/account/login/")
 def expense(request):
     if request.method == "GET":
-        data = Expense.objects.all()
-        for item in data:
-            item.date = jdatetime.date.fromgregorian(date=item.date)
-            item.date = jdatetime.datetime.strftime(item.date, "%Y/%m-%b/%d-%a")
-            item.time = datetime.time.strftime(item.time, "%I:%M-%p")
-        data = clean_number(data)
-        contenxt = {"data": data, "title": "Expense"}
+        user = request.user
+        data = Expense.objects.filter(user=user)
+        data = get_queryset(request, data)
+        data = clean(data)       
+        contenxt = {"data": data, "title": "خرج ها"}
         return render(request, 'flowdetail.html', contenxt)
     
 
@@ -78,13 +117,11 @@ def expense(request):
 @login_required(login_url="/account/login/")
 def income(request):
     if request.method == "GET":
-        data = Income.objects.all()
-        for item in data:
-            item.date = jdatetime.date.fromgregorian(date=item.date)
-            item.date = jdatetime.datetime.strftime(item.date, "%Y/%m-%b/%d-%a")
-            item.time = datetime.time.strftime(item.time, "%I:%M-%p")
-        data = clean_number(data)
-        contenxt = {"data": data, "title": "Income"}
+        user = request.user
+        data = Income.objects.filter(user=user)
+        data = get_queryset(request, data)
+        data = clean(data)
+        contenxt = {"data": data, "title": "درآمدها"}
         return render(request, 'flowdetail.html', contenxt)
     
 
