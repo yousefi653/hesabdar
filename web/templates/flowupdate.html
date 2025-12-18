@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}تغییر {{title_fa}}{% endblock %}
+{% block user %}{{request.user.username}}{% endblock %}
+
+{% block content %}
+    <div dir="auto">
+        <h2><b><big>تغییرات {{ title_fa }}</big></b></h2>
+        <p><b>در این صفحه میتونی ویژگی {{title_fa}} هاتو عوض کنی.</b></p>
+        <div class="container">
+            <div class="row">
+                <div class="col-6">
+                    <form method="post" class="form-control" style="background-color: #F2D56D;">
+                        {{ form.as_p }}
+                        <button class="btn btn-success" type="submit">تغییر بده</button>
+                        <a href="/account/{{ title_en }}/"><button class="btn btn-secondary">تغییر نده</button></a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

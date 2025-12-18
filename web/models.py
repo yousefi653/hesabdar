@@ -13,8 +13,9 @@ class Expense(models.Model):
     title = models.CharField(max_length=50)
     text = models.TextField(blank=True)
     amount = models.PositiveBigIntegerField()
-    date = models.DateTimeField()
+    date = models.DateField(blank=True)
     time = models.TimeField(blank=True)
+    updated_time = models.DateField(auto_now=True)
 
 
 class Income(models.Model):
@@ -22,5 +23,6 @@ class Income(models.Model):
     title = models.CharField(max_length=50)
     text = models.TextField(blank=True)
     amount = models.PositiveBigIntegerField()
-    date = models.DateTimeField()
+    date = models.DateField(blank=True)
     time = models.TimeField(blank=True)
+    updated_time = models.DateField(auto_now=True)

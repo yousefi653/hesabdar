@@ -1,8 +1,9 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login as dj_login, logout as dj_logout
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseNotFound
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
+from django.views import generic
 from .models import User, Expense, Income
 from .forms import RegisterForm, LoginForm, ExpenseIncomeForm
 import jdatetime
@@ -13,8 +14,10 @@ def clean(data):
     for item in data:
         item.amount = f"{item.amount:,}"
         item.date = jdatetime.date.fromgregorian(date=item.date)
-        item.date = jdatetime.datetime.strftime(item.date, "%Y/%m-%b/%d-%a")
+        item.date = jdatetime.datetime.strftime(item.date, "%Y/%m/%d")
         item.time = datetime.time.strftime(item.time, "%I:%M-%p")
+        item.updated_time = jdatetime.date.fromgregorian(date=item.updated_time)
+        item.updated_time = jdatetime.datetime.strftime(item.updated_time, "%Y/%m/%d")
     return data
 
 
@@ -92,7 +95,6 @@ def logout(request):
     if request.method == "GET":
         dj_logout(request)
         return redirect(to="/account/login/")
-    
 
 
 @login_required(login_url="/account/login/")
@@ -108,8 +110,8 @@ def expense(request):
         user = request.user
         data = Expense.objects.filter(user=user)
         data = get_queryset(request, data)
-        data = clean(data)       
-        contenxt = {"data": data, "title": "خرج ها"}
+        data = clean(data)
+        contenxt = {"data": data, "title_fa": "خرج", "title_en": "expense"}
         return render(request, 'flowdetail.html', contenxt)
     
 
@@ -121,7 +123,7 @@ def income(request):
         data = Income.objects.filter(user=user)
         data = get_queryset(request, data)
         data = clean(data)
-        contenxt = {"data": data, "title": "درآمدها"}
+        contenxt = {"data": data, "title_fa": "درآمد", "title_en":"income", 'url_delete':'delete_income'}
         return render(request, 'flowdetail.html', contenxt)
     
 
@@ -135,17 +137,17 @@ def createExpense(request):
             title = form.cleaned_data.get('title')
             text = form.cleaned_data.get('text')
             amount = form.cleaned_data.get("amount")
-            date = form.cleaned_data.get('date')
-            time = form.cleaned_data.get("time")
+            date = form.cleaned_data.get('date') or datetime.date.today()
+            time = form.cleaned_data.get("time") or datetime.datetime.now().time()
             expense = Expense.objects.create(user=user, title=title, text=text, amount=amount, date=date, time=time)
             if expense:
                 return redirect(to="/account/expense/")
     else:
-        form = ExpenseIncomeForm()
+        now = datetime.datetime.now()
+        form = ExpenseIncomeForm(initial={"date": now.date(), "time": now.time()})
     context = {"form": form, 'title': "خرج"}
     return render(request, 'flowcash.html', context=context)
     
-            
 
 @csrf_exempt
 @login_required(login_url="/account/login/")
@@ -157,15 +159,85 @@ def createIncome(request):
             title = form.cleaned_data.get('title')
             text = form.cleaned_data.get('text')
             amount = form.cleaned_data.get("amount")
-            date = form.cleaned_data.get('date')
-            time = form.cleaned_data.get("time")
-
+            date = form.cleaned_data.get('date') or datetime.date.today()
+            time = form.cleaned_data.get("time") or datetime.datetime.now().time()
             expense = Income.objects.create(user=user, title=title, text=text, amount=amount, date=date, time=time)
             if expense:
                 return redirect(to="/account/income/")
     else:
-        form = ExpenseIncomeForm()
+        now = datetime.datetime.now()
+        form = ExpenseIncomeForm(initial={"date": now.date(), "time": now.time()})
     context = {"form": form, 'title': "درآمد"}
     return render(request, 'flowcash.html', context=context)
     
-            
+
+@csrf_exempt    
+@login_required(login_url="/account/login/")
+def updateExpense(request, pk):
+    user = request.user
+    expense = get_object_or_404(Expense, user=user, pk=pk)
+
+    if request.method == "POST":
+        form = ExpenseIncomeForm(request.POST)
+        if form.is_valid():
+            expense.title = form.cleaned_data.get('title')
+            expense.text = form.cleaned_data.get('text')
+            expense.amount = form.cleaned_data.get("amount")
+            expense.date = form.cleaned_data.get('date')
+            expense.time = form.cleaned_data.get("time")
+            expense.save()
+            return redirect("/account/expense/")
+    else:
+        form = ExpenseIncomeForm(instance=expense)
+    return render(request, 'flowupdate.html', {"form":form, "title_fa": 'خرج', 'title_en': 'expense'})
+
+
+@csrf_exempt
+@login_required(login_url="/account/login/")
+def deleteExpense(request, pk):
+    user = request.user
+    expense = get_object_or_404(
+        Expense,
+        user=user,
+        pk=pk
+    )
+    if request.method == "POST":
+        expense.delete()
+        return redirect("/account/expense/")
+    return HttpResponseNotFound()
+
+
+@csrf_exempt    
+@login_required(login_url="/account/login/")
+def updateIncome(request, pk):
+    user = request.user
+    income = get_object_or_404(Income, user=user, pk=pk)
+
+    if request.method == "POST":
+        form = ExpenseIncomeForm(request.POST)
+        if form.is_valid():
+            income.title = form.cleaned_data.get('title')
+            income.text = form.cleaned_data.get('text')
+            income.amount = form.cleaned_data.get("amount")
+            income.date = form.cleaned_data.get('date')
+            income.time = form.cleaned_data.get("time")
+            income.save()
+            return redirect("/account/income/")
+    else:
+        form = ExpenseIncomeForm(instance=income)
+    return render(request, 'flowupdate.html', {"form":form, "title_fa": 'درآمد'})
+
+
+@csrf_exempt
+@login_required(login_url="/account/login/")
+def deleteIncome(request, pk):
+    user = request.user
+    income = get_object_or_404(
+        Income,
+        user=user,
+        pk=pk
+    )
+    if request.method == "POST":
+        income.delete()
+        return redirect("/account/income/")
+    return HttpResponseNotFound()
