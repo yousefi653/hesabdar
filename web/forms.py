@@ -1,7 +1,8 @@
 from django import forms
 from .models import User, Expense, Income
-import re
-import datetime
+from django.contrib.auth.hashers import check_password
+import time
+
 
 class RegisterForm(forms.Form):
 
@@ -91,4 +92,64 @@ class ExpenseIncomeForm(forms.ModelForm):
         if amount <= 0:
             raise forms.ValidationError("مبلغ باید عددی مثبت و غیر صفر باشد!")
         return amount
+
+
+class ProfileForm(forms.ModelForm):
+    first_name = forms.CharField(max_length=50, required=False, label="نام", widget=forms.TextInput(attrs={"class":'form-control', 'placeholder': 'نام خود را وارد کنید.'}))
+    last_name = forms.CharField(max_length=50, required=False, label="نام خانوادگی", widget=forms.TextInput(attrs={"class":'form-control', 'placeholder': 'نام خانوادگی خود را وارد کنید.'}))
+    username = forms.CharField(max_length=50, required=True, label="نام کاربری", widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "نام کاربری خود را وارد کنید."}))
+    email = forms.EmailField(max_length=150, required=True, label="ایمیل",widget=forms.EmailInput(attrs={"class":'form-control', "placeholder": "ایمیل خود را وارد کنید"}))
     
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "username", "email")
+    
+    def clean_username(self):
+        username = self.cleaned_data.get("username")
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return username
+        else:
+            if user.username == self.instance.username:
+                return username
+            raise forms.ValidationError("این نام کاربری مطعلق به شخص دیگریست")
+
+
+class ChangePasswordForm(forms.ModelForm):
+    current_password = forms.CharField(label="پسورد فعلی", widget=forms.PasswordInput(attrs={"class":"form-control"}))
+    p1 = forms.CharField(label='رمز عبور جدید', widget=forms.PasswordInput(attrs={"class":"form-control"}))
+    p2 = forms.CharField(label='تکرار رمز عبور', widget=forms.PasswordInput(attrs={"class":"form-control"}))
+
+    class Meta:
+        model = User
+        fields = []
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        p1 = cleaned_data.get("p1")
+        p2 = cleaned_data.get("p2")
+        current_password = cleaned_data.get("current_password")
+
+        if not self.instance.check_password(current_password):
+            raise forms.ValidationError("پسورد اشتباه است دوباره امتحان کنید")
+        if not p1 == p2:
+            raise forms.ValidationError("پسورد های جدید باهم یکی نیستند.")
+        return cleaned_data
+    
+
+class VerifyCodeForm(forms.Form):
+    code = forms.CharField(label="کد تایید", widget=forms.TextInput(attrs={"class":"form-control", "placeholder":"کد تایید ارسال شده به ایمیل خود را وارد کنید."}))
+
+    def __init__(self, *args, verify_code=None, expire_time=None,**kwargs):
+        super().__init__(*args, **kwargs)
+        self.verify_code = verify_code
+        self.expire_time = expire_time
+
+    def clean_code(self):
+        code = self.cleaned_data.get("code")
+        if time.time() > self.expire_time:
+            raise forms.ValidationError("کد شما منقضی شده لطفا کد جدید را وارد کنید")
+        elif not code == self.verify_code:
+            raise forms.ValidationError("کد وارد شده اشتباه است.")
+        return code

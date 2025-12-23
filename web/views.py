@@ -5,9 +5,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.views import generic
 from .models import User, Expense, Income
-from .forms import RegisterForm, LoginForm, ExpenseIncomeForm
+from .forms import RegisterForm, LoginForm, ExpenseIncomeForm, ProfileForm, ChangePasswordForm, VerifyCodeForm
 import jdatetime
 import datetime
+import secrets
+import time
+import os
+import smtplib
+from email.mime.text import MIMEText
+
 
 # Create your views here.
 def clean(data):
@@ -53,6 +59,29 @@ def get_queryset(request, data):
             pass
 
     return data
+
+
+def send_email(email, code):
+    sender = "yousef.devmev@gmail.com"
+    password = os.getenv("EMAIL_APP_PASSWORD")
+    receiver = email
+
+    today = jdatetime.date.today()
+    now = jdatetime.datetime.now().time()
+    msg = MIMEText(f"کد احراز هویت شما: {code}\nتاریخ: {today.strftime("%Y/%m/%d")}\nزمان: {now.strftime("%H:%M:%S")}\nکد بعد از 2 دقیقه منقضی میشود.")
+    msg["Subject"] = "کد احراز هویت"
+    msg["From"] = sender
+    msg["To"] = receiver
+
+    server = smtplib.SMTP(host="smtp.gmail.com", port=587, timeout=20)
+    server.starttls()
+    server.login(sender, password)
+    server.send_message(msg)
+    server.quit()
+
+
+def gen_code():
+    return f"{secrets.randbelow(1_000_000):06d}"
 
 
 @csrf_exempt
@@ -111,7 +140,7 @@ def expense(request):
         data = Expense.objects.filter(user=user)
         data = get_queryset(request, data)
         data = clean(data)
-        contenxt = {"data": data, "title_fa": "خرج", "title_en": "expense"}
+        contenxt = {"data": data, "title_fa": "خرج", "title_en": "expense", 'url_delete': 'delete_expense'}
         return render(request, 'flowdetail.html', contenxt)
     
 
@@ -241,3 +270,57 @@ def deleteIncome(request, pk):
         income.delete()
         return redirect("/account/income/")
     return HttpResponseNotFound()
+
+
+@csrf_exempt
+@login_required(login_url="/account/login/")
+def profile(request):
+    user = request.user
+    if request.method == "POST":
+        form = ProfileForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect("/account/profile/")
+    else:
+        form = ProfileForm(instance=user)
+    return render(request, 'profile.html', {'form': form})
+
+
+@csrf_exempt
+@login_required(login_url="/account/login/")
+def changePassword(request):
+    user = request.user
+    if request.method == 'POST':
+        form = ChangePasswordForm(request.POST, instance=user)
+        if form.is_valid():
+            new_password = form.cleaned_data.get("p1")
+            code = gen_code()
+            send_email(user.email, code)
+            request.session["verify_password"] = {"password": new_password, "code": code, "expire_time": time.time() + 120}
+            return redirect("/account/verify_code/")
+    else:
+        form = ChangePasswordForm(instance=user)
+    return render(request, "changepassword.html", {"form":form})
+
+
+@csrf_exempt
+@login_required(login_url="/account/login/")
+def verify_password(request):
+    if request.method == "POST":
+        code = request.session.get("verify_password")['code']
+        expire_time = request.session.get("verify_password")["expire_time"]
+        form = VerifyCodeForm(request.POST, verify_code=code, expire_time=expire_time)
+        if form.is_valid():
+            user = request.user
+            user.set_password(request.session.get("verify_password")["password"])
+            user.save()
+            return redirect("/account/logout/")
+        if time.time() > expire_time:
+            new_password = request.session.get("verify_password")['password']
+            code = gen_code()
+            send_email(request.user.email, code)
+            request.session.pop('verify_password', None)
+            request.session["verify_password"] = {"password": new_password, "code": code, "expire_time": time.time() + 120}
+    else:
+        form = VerifyCodeForm()
+    return render(request, "verifypage.html", {"form":form})

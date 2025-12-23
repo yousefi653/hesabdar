@@ -4,6 +4,8 @@ import datetime
 # Create your models here.
 
 class User(AbstractUser):
+    first_name = models.CharField(max_length=50, blank=True)
+    last_name = models.CharField(max_length=50, blank=True)
     username = models.CharField(max_length=50, unique=True)
     email = models.EmailField(max_length=150, unique=True)
 

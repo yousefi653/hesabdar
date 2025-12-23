@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}پروفایل{% endblock %}
+{% block user %}{{ request.user.username }}{% endblock %}
+{% block content %}
+    <div dir="auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-6">
+                    <form method="post" class="form-control" style="background-color: #F2D56D;" action="/account/profile/">
+                        {{ form.as_p }}
+                        <button class="btn btn-success" type="submit">تغییر بده</button>
+                    </form>
+                </div>
+                <div class="col">
+                    <p>برای تغییر رمز عبور خود<a href="/account/change_password/">کلیک  </a>کنید</p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
