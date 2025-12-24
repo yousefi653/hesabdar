@@ -15,5 +15,8 @@ urlpatterns = [
     path("account/update_income/<int:pk>/", views.updateIncome),
     path("account/profile/", views.profile),
     path("account/change_password/", views.changePassword),
-    path("account/verify_code/", views.verify_password)
+    path("account/verify_code/", views.verify_password),
+    path("account/verify_person/", views.verify_person),
+    path("account/delete_account/", views.deleteaccount),
+    path("account/verify_delete_account/", views.verify_DeleteAccount)
 ]

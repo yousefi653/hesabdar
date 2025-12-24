@@ -1,0 +1,18 @@
+{% extends 'base2.html' %}
+{% block title %}کد تایید{% endblock %}
+
+{% block content %}
+    <div dir="auto">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-4">
+                    <form method="post" class="form-control text-center" style="background-color: #F2D56D;" action="/account/verify_person/">
+                        <h4><b><big>کد تایید</big></b></h4>
+                        {{ form.as_p }}
+                        <button class="btn btn-success" type="submit">تایید</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

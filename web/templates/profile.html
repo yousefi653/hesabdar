@@ -13,6 +13,31 @@
                 </div>
                 <div class="col">
                     <p>برای تغییر رمز عبور خود<a href="/account/change_password/">کلیک  </a>کنید</p>
+                    <br>
+                    <label for="delete_account">حذف حساب:</label>
+
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                    حذف
+                    </button>
+
+                    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content" style="background-color: #FAE9AA;">
+                                <div class="modal-header" style="background-color: #F2D56D; border-color: black;">
+                                    <h1 class="modal-title fs-5" id="exampleModalLabel">حذف کردن حساب کاربری</h1>
+                                </div>
+                                <div class="modal-body">
+                                    <p>آیا مطعنی میخوای حساب کاربریت رو حذف کنی؟؟راه برگشتی نیستا!</p>
+                                </div>
+                                <div class="modal-footer" dir="ltr" style="border-color: black;">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
+                                    <form action="/account/delete_account/" method="post">
+                                        <button type="submit" class="btn btn-danger">حذف</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

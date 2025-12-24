@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.views import generic
 from .models import User, Expense, Income
-from .forms import RegisterForm, LoginForm, ExpenseIncomeForm, ProfileForm, ChangePasswordForm, VerifyCodeForm
+from .forms import *
 import jdatetime
 import datetime
 import secrets
@@ -89,14 +89,53 @@ def register(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect(to="/")
-
+            code = gen_code()
+            send_email(form.cleaned_data.get("email"), code)
+            request.session["register"] = {
+                "username": form.cleaned_data.get("username"),
+                "email": form.cleaned_data.get("email"),
+                "password": form.cleaned_data.get("password1"),
+                "code": code,
+                "expire_time": time.time() + 120
+            }
+            return redirect("/account/verify_person/")
     else:
         form = RegisterForm()
     if request.user.is_authenticated:
         return redirect("/")
     return render(request, 'register.html', context={'form':form})
+        
+
+@csrf_exempt
+def verify_person(request):
+    if request.method == "POST":
+        verify_code= request.session.get("register")['code']
+        expire_time = request.session.get('register')['expire_time']
+        form = VerifyCodeForm(request.POST, verify_code=verify_code, expire_time=expire_time)
+        if form.is_valid():
+            username = request.session.get("register")["username"]
+            email = request.session.get("register")["email"]
+            password = request.session.get("register")['password']
+            user = User.objects.create_user(username=username, email=email, password=password)
+            return redirect("/")
+        
+        if time.time() > expire_time:
+            username = request.session.get("register")["username"]
+            email = request.session.get("register")["email"]
+            password = request.session.get("register")['password']
+            request.session.pop("register", None)
+            code = gen_code()
+            send_email(email, code)
+            request.session["register"] = {
+                "username": username,
+                "email": email,
+                "password": password,
+                "code": code,
+                "expire_time": time.time() + 120
+            }
+    else:
+        form = VerifyCodeForm()
+    return render(request, "verifyperson.html", {"form": form})
         
 
 @csrf_exempt
@@ -324,3 +363,44 @@ def verify_password(request):
     else:
         form = VerifyCodeForm()
     return render(request, "verifypage.html", {"form":form})
+
+
+@csrf_exempt
+@login_required(login_url="/account/login/")
+def deleteaccount(request):
+    if request.method == "POST":
+        code = gen_code()
+        send_email(request.user.email, code)
+        request.session["delete_account"] = {
+            "code": code,
+            "expire_time": time.time() + 120
+        }
+        return redirect("/account/verify_delete_account/")
+
+    return HttpResponseNotFound()
+
+
+@csrf_exempt
+@login_required(login_url="/account/login/")
+def verify_DeleteAccount(request):
+    if request.method == "POST":
+        code = request.session.get("delete_account")['code']
+        expire_time = request.session.get("delete_account")['expire_time']
+        form = VerifyCodeForm(request.POST, verify_code=code, expire_time=expire_time)
+        if form.is_valid():
+            user = request.user
+            User.objects.get(username=user.username).delete()
+            return redirect("/account/logout/")
+        if time.time() > expire_time:
+            request.session.pop("delete_account")
+            code = gen_code()
+            send_email(request.user.email, code)
+            request.session["delete_account"] = {
+            "code": code,
+            "expire_time": time.time() + 120
+        }
+    else:
+        form = VerifyCodeForm()
+    return render(request, "verifydeleteaccount.html", {"form": form})
+
+

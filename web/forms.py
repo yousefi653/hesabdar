@@ -2,6 +2,7 @@ from django import forms
 from .models import User, Expense, Income
 from django.contrib.auth.hashers import check_password
 import time
+import re
 
 
 class RegisterForm(forms.Form):
@@ -22,8 +23,9 @@ class RegisterForm(forms.Form):
         
 
     def clean_email(self):
-        super().clean()
         email = self.cleaned_data.get('email')
+        if not re.match(r"@gmail.com$", email):
+            raise forms.ValidationError("فرمت ایمیل درست نیست به این صورت وارد کن example@gmail.com")
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError("این ایمیل قبلا ثبت شده")
         return email
@@ -55,21 +57,6 @@ class LoginForm(forms.Form):
 
 
 class ExpenseIncomeForm(forms.ModelForm):
-    # title = forms.CharField(max_length=50, label="عنوان",widget=forms.TextInput(attrs={"class": 'form-control', 'placeholder': "عنوان مورد نظر خود را وارد کنید"}))
-    # text = forms.CharField(label="توضیحات",required=False ,widget=forms.Textarea(attrs={"placeholder": "توضیحات مربوط به عنوان خود را وارد کنید (اجباری نیست)", 'class': 'form-control', "rows":1}))
-    # amount = forms.IntegerField(label="مبلغ", widget=forms.NumberInput(attrs={"class": "form-control", 'placeholder': "مبلغ را وارد کنید"}))
-    # date = forms.DateField(label="تاریخ", initial=today, widget=forms.DateInput(attrs={"class":'form-control', 'placeholder': "تاریخ مورد نظر را وارد کنید(پیشفرض امروز در نظر گرفته میشود)(میلادی وارد شود!!)"}))
-    # time = forms.TimeField(label="زمان", initial=now, required=False,widget=forms.TimeInput(attrs={"class": "form-control", 'placeholder': "زمان مورد نظر خود را وارد کنید(پیشفرض زمان حال در نظر گرفته میشود)"}))
-
-    # def clean_amount(self):
-    #     super().clean()
-    #     amount = self.cleaned_data.get("amount")
-    #     if amount <= 0:
-    #         raise forms.ValidationError("مبلغ باید عددی مثبت و غیر صفر باشد!")
-    #     return amount
-    # date = forms.DateField(label="تاریخ", widget=forms.DateInput(attrs={"class":'form-control', 'placeholder': "تاریخ مورد نظر را وارد کنید(پیشفرض امروز در نظر گرفته میشود)(میلادی وارد شود!!)"}))
-    # time = forms.TimeField(label="زمان", required=False,widget=forms.TimeInput(attrs={"class": "form-control", 'placeholder': "زمان مورد نظر خود را وارد کنید(پیشفرض زمان حال در نظر گرفته میشود)"}))
-    
     text = forms.CharField(label="توضیحات",required=False ,widget=forms.Textarea(attrs={"placeholder": "توضیحات مربوط به عنوان خود را وارد کنید (اجباری نیست)", 'class': 'form-control', "rows":1}))
     class Meta:
         model = Income
@@ -153,3 +140,20 @@ class VerifyCodeForm(forms.Form):
         elif not code == self.verify_code:
             raise forms.ValidationError("کد وارد شده اشتباه است.")
         return code
+    
+
+# class VerifyPersonForm(forms.Form):
+#     code = forms.CharField(label="کد", widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "کد ارسال شده به ایمیل خود را وارد کنید."}))
+
+#     def __init__(self, *args, verify_code=None, expire_time=None, **kwrags):
+#         super().__init__(*args, **kwrags)
+#         self.verify_code = verify_code
+#         self.expire_time = expire_time
+
+#     def clean_code(self):
+#         code = self.cleaned_data.get("code")
+#         if time.time() > self.expire_time:
+#             raise forms.ValidationError("کد شما منقضی شده لطفا کد جدید را وارد کنید")
+#         elif not code == self.verify_code:
+#             raise forms.ValidationError("کد وارد شده اشتباه است")
+#         return code
