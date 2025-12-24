@@ -24,7 +24,7 @@ class RegisterForm(forms.Form):
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
-        if not re.match(r"@gmail.com$", email):
+        if not re.search(r"@gmail.com$", email):
             raise forms.ValidationError("فرمت ایمیل درست نیست به این صورت وارد کن example@gmail.com")
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError("این ایمیل قبلا ثبت شده")
