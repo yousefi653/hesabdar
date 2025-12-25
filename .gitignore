@@ -3,3 +3,5 @@ web/__pycache__/
 web/migrations/__pycache__/
 *.pyc
 todo.txt
+.vscode/
+

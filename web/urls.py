@@ -17,5 +17,6 @@ urlpatterns = [
     path("account/verify_code/", views.verify_code),
     path("account/request_change_password/", views.request_changePassword),
     path("account/change_password/", views.changePassword),
-    path("account/delete_account/", views.deleteAccount)
+    path("account/delete_account/", views.deleteAccount),
+    path("account/statistics/", views.statistics)
 ]

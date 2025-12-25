@@ -16,6 +16,7 @@ class Expense(models.Model):
     text = models.TextField(blank=True)
     amount = models.PositiveBigIntegerField()
     date = models.DateField(blank=True)
+    jdate = models.CharField(null=True, blank=True)
     time = models.TimeField(blank=True)
     updated_time = models.DateField(auto_now=True)
 
@@ -26,5 +27,9 @@ class Income(models.Model):
     text = models.TextField(blank=True)
     amount = models.PositiveBigIntegerField()
     date = models.DateField(blank=True)
+    jdate = models.CharField(null=True, blank=True)
     time = models.TimeField(blank=True)
     updated_time = models.DateField(auto_now=True)
+
+    def __str__(self):
+        return f"amount:{self.amount}-date:{self.date}"

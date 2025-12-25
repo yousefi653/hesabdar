@@ -25,30 +25,10 @@
                 <table class="table table-warning table-striped-columns" border="5">
                     <thead>
                         <tr>
-                            <th>
-                                {% with current_sort_id=request.GET.sort_id %}
-                                    {% if current_sort_id == "id" %}
-                                        <a href="{% querystring sort_id='-id' %}">ID˅</a>
-                                    {% elif current_sort == "-id" %}
-                                        <a href="{% querystring sort_id='id' %}">ID˄</a>
-                                    {% else %}
-                                        <a href="{% querystring sort_id='id' %}">ID˄</a>
-                                    {% endif %}
-                                {% endwith %}
-                            </th>
                             <th>عنوان</th>
                             <th>مبلغ (تومان)</th>
-                            <th>
-                                {% with current_sort_date=request.GET.sort_date %}
-                                    {% if current_sort_date == "date" %}
-                                        <a href="/account/expense/?title={{ request.GET.title }}&sort_date=-date">تاریخ˅</a>
-                                    {% elif current_sort_date == '-date' %}
-                                        <a href="/account/expense/?title={{ request.GET.title }}&sort_date=date">تاریخ˄</a>
-                                    {% else %}
-                                        <a href="/account/expense/?title={{ request.GET.title }}&sort_date=date">تاریخ˄</a>
-                                    {% endif %}
-                                {% endwith %}
-                            </th>
+                            <th>تاریخ(میلادی)</th>
+                            <th>تاریخ(شمسی)</th>
                             <th>زمان</th>
                             <th>آخرین تغییر</th>
                             <th>توضیحات</th>
@@ -59,21 +39,19 @@
                     <tbody>
                         {% for item in data %}
                             <tr>
-                                <td>{{ item.id }}</td>
                                 <td>{{ item.title }}</td>
                                 <td>{{ item.amount }}</td>
                                 <td>{{ item.date }}</td>
+                                <th>{{ item.jdate }}</th>
                                 <td>{{ item.time }}</td>
                                 <td>{{ item.updated_time }}</td>
                                 <td>{{ item.text }}</td>
-                                <td><a href="/account/update_expense/{{ item.id }}/"><button class="btn btn-warning">ادیت</button></a></td>
+                                <td><a href="/account/update_{{ title_en }}/{{ item.id }}/"><button class="btn btn-warning">ادیت</button></a></td>
                                 <td>
-                                    <!-- Button trigger modal -->
                                     <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#exampleModal">
                                     حذف
                                     </button>
 
-                                    <!-- Modal -->
                                     <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
                                         <div class="modal-dialog">
                                             <div class="modal-content">

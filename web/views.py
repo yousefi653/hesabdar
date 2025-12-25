@@ -4,6 +4,8 @@ from django.http import HttpResponse, HttpResponseNotFound, HttpResponseForbidde
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.views import generic
+from django.conf import settings
+from django.db.models import Sum, Max
 from .models import User, Expense, Income
 from .forms import *
 import jdatetime
@@ -13,14 +15,15 @@ import time
 import os
 import smtplib
 from email.mime.text import MIMEText
+from matplotlib import pyplot
+
 
 
 # Create your views here.
 def clean(data):
     for item in data:
         item.amount = f"{item.amount:,}"
-        item.date = jdatetime.date.fromgregorian(date=item.date)
-        item.date = jdatetime.datetime.strftime(item.date, "%Y/%m/%d")
+        item.date = datetime.datetime.strftime(item.date, "%Y/%m/%d")
         item.time = datetime.time.strftime(item.time, "%I:%M-%p")
         item.updated_time = jdatetime.date.fromgregorian(date=item.updated_time)
         item.updated_time = jdatetime.datetime.strftime(item.updated_time, "%Y/%m/%d")
@@ -85,6 +88,62 @@ def send_email(email, code):
 def gen_code():
     return f"{secrets.randbelow(1_000_000):06d}"
 
+
+def draw_plot(user):
+    today = jdatetime.date.today()
+    day_in_month = jdatetime.j_days_in_month[today.month - 1]
+
+    incomes = Income.objects.filter(user=user, jdate__contains=f"/{today.month}/")
+    temp = [0 for _ in range(day_in_month)]
+    for day in range(1, day_in_month + 1):
+        sum = incomes.filter(jdate__contains=f"{today.month}/{day:02d}").aggregate(sum=Sum("amount"))
+        if sum['sum']:
+            temp[day-1] = sum['sum']
+    del incomes
+    incomes = temp.copy()
+
+    expenses = Expense.objects.filter(user=user, jdate__contains=f"/{today.month}/")
+    temp = [0 for _ in range(day_in_month)]
+    for day in range(1, day_in_month + 1):
+        sum = expenses.filter(jdate__contains=f"{today.month}/{day:02d}").aggregate(sum=Sum('amount'))
+        if sum['sum']:
+            temp[day-1] = sum['sum']
+    del expenses
+    expenses = temp.copy()
+
+    ## یکسری امار معمولی
+    total_incomes = Income.objects.filter(user=user).aggregate(sum=Sum("amount"))['sum'] or 0
+    total_expenses = Expense.objects.filter(user=user).aggregate(sum=Sum('amount'))['sum'] or 0
+    balance = total_incomes - total_expenses
+    ave_daily_income = total_incomes / day_in_month or 0
+    ave_daily_expense = total_expenses / day_in_month or 0
+    max_income = Income.objects.filter(user=user).aggregate(max=Max("amount"))['max'] or 0
+    max_expense = Expense.objects.filter(user=user).aggregate(max=Max("amount"))['max'] or 0
+
+    contenxt = {"total_incomes": f"{total_incomes:,}",
+                "total_expense": f"{total_expenses:,}",
+                "balance": f"{balance:,}",
+                "ave_daily_income": f"{ave_daily_income:,.2f}",
+                "ave_daily_expense": f"{ave_daily_expense:,.2f}",
+                "max_income": f"{max_income:,}",
+                "max_expense": f"{max_expense:,}"
+                }
+    ## تمام
+
+
+    days = [x for x in range(1, day_in_month +1 )]
+    pyplot.figure(figsize=(10, 7))
+    pyplot.plot(days, incomes, color="green", marker="o", linewidth=3, markersize=5)
+    pyplot.plot(days, expenses, color="red", marker="o", linewidth=3, markersize=5)
+    pyplot.xlabel("Days of the month", fontsize=12, fontweight='bold')
+    pyplot.ylabel("Amount", fontsize=12, fontweight='bold')
+    pyplot.title("Income and expense chart", fontsize=15, fontweight='bold', color='blue')
+    pyplot.xticks(days, rotation=45, fontsize=9)
+    pyplot.grid(True)
+    pyplot.savefig(f"{settings.BASE_DIR}/web/static/web/img/chart.png", dpi=100, bbox_inches='tight')
+    pyplot.close()
+    
+    return contenxt
 
 @csrf_exempt
 def verify_code(request):
@@ -237,9 +296,10 @@ def createExpense(request):
             text = form.cleaned_data.get("text")
             amount = form.cleaned_data.get("amount")
             date = form.cleaned_data.get("date") or datetime.date.today()
+            jdate = jdatetime.date.fromgregorian(date=date).strftime("%Y/%m/%d")
             time = form.cleaned_data.get("time") or datetime.datetime.now().time()
             expense = Expense.objects.create(
-                user=user, title=title, text=text, amount=amount, date=date, time=time
+                user=user, title=title, text=text, amount=amount, date=date, time=time, jdate=jdate
             )
             if expense:
                 return redirect(to="/account/expense/")
@@ -261,9 +321,10 @@ def createIncome(request):
             text = form.cleaned_data.get("text")
             amount = form.cleaned_data.get("amount")
             date = form.cleaned_data.get("date") or datetime.date.today()
+            jdate = jdatetime.date.fromgregorian(date=date).strftime("%Y/%m/%d")
             time = form.cleaned_data.get("time") or datetime.datetime.now().time()
             expense = Income.objects.create(
-                user=user, title=title, text=text, amount=amount, date=date, time=time
+                user=user, title=title, text=text, amount=amount, date=date, time=time, jdate=jdate
             )
             if expense:
                 return redirect(to="/account/income/")
@@ -287,6 +348,7 @@ def updateExpense(request, pk):
             expense.text = form.cleaned_data.get("text")
             expense.amount = form.cleaned_data.get("amount")
             expense.date = form.cleaned_data.get("date")
+            expense.jdate = jdatetime.date.fromgregorian(date=expense.date).strftime("%Y/%m/%d")
             expense.time = form.cleaned_data.get("time")
             expense.save()
             return redirect("/account/expense/")
@@ -323,12 +385,13 @@ def updateIncome(request, pk):
             income.text = form.cleaned_data.get("text")
             income.amount = form.cleaned_data.get("amount")
             income.date = form.cleaned_data.get("date")
+            income.jdate = jdatetime.date.fromgregorian(date=income.date).strftime("%Y/%m/%d")
             income.time = form.cleaned_data.get("time")
             income.save()
             return redirect("/account/income/")
     else:
         form = ExpenseIncomeForm(instance=income)
-    return render(request, "flowupdate.html", {"form": form, "title_fa": "درآمد"})
+    return render(request, "flowupdate.html", {"form": form, "title_fa": "درآمد", "title_en": "income"})
 
 
 @csrf_exempt
@@ -408,3 +471,10 @@ def deleteAccount(request):
         }
         return redirect("/account/verify_code/")
     return HttpResponseNotFound()
+
+
+def statistics(request):
+    if request.method == 'GET':
+        user = request.user
+        context = draw_plot(user)
+        return render(request, "statistics.html", context)
