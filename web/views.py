@@ -478,6 +478,7 @@ def deleteAccount(request):
     return HttpResponseNotFound()
 
 
+@login_required(login_url="/account/login/")
 def statistics(request):
     if request.method == 'GET':
         user = request.user
