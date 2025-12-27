@@ -13,6 +13,7 @@
             <div class="row">
                 <div class="col-6">
                     <form method="post" class="form-control" style="background-color: #F2D56D;">
+                        {% csrf_token %}
                         {{ form.as_p }}
                         <button class="btn btn-success" type="submit">اضافه کن</button>
                     </form>

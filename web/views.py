@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login as dj_login, logout as dj_logout
 from django.http import HttpResponse, HttpResponseNotFound, HttpResponseForbidden
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
+from django_ratelimit.decorators import ratelimit
 from django.views import generic
 from django.conf import settings
 from django.db.models import Sum, Max
@@ -145,7 +146,6 @@ def draw_plot(user):
     
     return contenxt
 
-@csrf_exempt
 def verify_code(request):
     purpose = request.session.get("verify")["purpose"]
     if ((purpose == "register") and (not request.user.is_authenticated)) or (
@@ -169,6 +169,10 @@ def verify_code(request):
 
                 elif purpose == "change_password":
                     request.session.pop("verify", None)
+                    request.session["user_verified"] = {
+                        "username": request.user.username,
+                        "expire_time": time.time() + 300
+                    }
                     return redirect("/account/change_password/")
 
                 elif purpose == "delete_account":
@@ -192,7 +196,7 @@ def verify_code(request):
     return HttpResponseForbidden()
 
 
-@csrf_exempt
+@ratelimit(key='ip', rate="3/h", block=True)
 def register(request):
     if request.method == "POST":
         form = RegisterForm(request.POST)
@@ -218,7 +222,7 @@ def register(request):
     return render(request, "register.html", {"form": form})
 
 
-@csrf_exempt
+@ratelimit(key="ip", rate="5/m", block=True)
 def login(request):
     if request.method == "POST":
         form = LoginForm(request.POST)
@@ -237,12 +241,12 @@ def login(request):
     return render(request, "login.html", context={"form": form})
 
 
-@csrf_exempt
 @login_required(login_url="/account/login/")
 def logout(request):
-    if request.method == "GET":
+    if request.method == "POST":
         dj_logout(request)
         return redirect(to="/account/login/")
+    return HttpResponseForbidden()
 
 
 @login_required(login_url="/account/login/")
@@ -251,7 +255,6 @@ def home(request):
         return render(request, "home.html")
 
 
-@csrf_exempt
 @login_required(login_url="/account/login/")
 def expense(request):
     if request.method == "GET":
@@ -268,7 +271,6 @@ def expense(request):
         return render(request, "flowdetail.html", contenxt)
 
 
-@csrf_exempt
 @login_required(login_url="/account/login/")
 def income(request):
     if request.method == "GET":
@@ -285,7 +287,7 @@ def income(request):
         return render(request, "flowdetail.html", contenxt)
 
 
-@csrf_exempt
+@ratelimit(key="user", rate="10/m", block=True)
 @login_required(login_url="/account/login/")
 def createExpense(request):
     if request.method == "POST":
@@ -310,7 +312,7 @@ def createExpense(request):
     return render(request, "flowcash.html", context=context)
 
 
-@csrf_exempt
+@ratelimit(key="user", rate="10/m", block=True)
 @login_required(login_url="/account/login/")
 def createIncome(request):
     if request.method == "POST":
@@ -335,7 +337,7 @@ def createIncome(request):
     return render(request, "flowcash.html", context=context)
 
 
-@csrf_exempt
+@ratelimit(key="user", rate="6/m", block=True)
 @login_required(login_url="/account/login/")
 def updateExpense(request, pk):
     user = request.user
@@ -361,7 +363,6 @@ def updateExpense(request, pk):
     )
 
 
-@csrf_exempt
 @login_required(login_url="/account/login/")
 def deleteExpense(request, pk):
     user = request.user
@@ -372,7 +373,7 @@ def deleteExpense(request, pk):
     return HttpResponseNotFound()
 
 
-@csrf_exempt
+@ratelimit(key='user', rate="6/m", block=True)
 @login_required(login_url="/account/login/")
 def updateIncome(request, pk):
     user = request.user
@@ -394,7 +395,6 @@ def updateIncome(request, pk):
     return render(request, "flowupdate.html", {"form": form, "title_fa": "درآمد", "title_en": "income"})
 
 
-@csrf_exempt
 @login_required(login_url="/account/login/")
 def deleteIncome(request, pk):
     user = request.user
@@ -405,7 +405,6 @@ def deleteIncome(request, pk):
     return HttpResponseNotFound()
 
 
-@csrf_exempt
 @login_required(login_url="/account/login/")
 def profile(request):
     user = request.user
@@ -419,11 +418,11 @@ def profile(request):
     return render(request, "profile.html", {"form": form})
 
 
-@csrf_exempt
+@ratelimit(key='user', rate="3/h", block=True)
 @login_required(login_url="/account/login/")
 def request_changePassword(request):
     if request.method == "POST":
-        username = request.user.username
+        request.session.pop("verify", None)
         email = request.user.email
         code = gen_code()
         send_email(email, code)
@@ -437,10 +436,16 @@ def request_changePassword(request):
     return HttpResponseForbidden()
 
 
-@csrf_exempt
 @login_required(login_url="/account/login/")
 def changePassword(request):
     user = request.user
+    verify = request.session.get("user_verified")
+    if not verify:
+        return HttpResponseForbidden("شما احراز هویت نشده اید.")
+    if verify['username'] !=  user.username:
+        return HttpResponseForbidden("نام کاربری شما احراز هویت نشده است.")
+    if time.time() > verify['expire_time']:
+        return HttpResponseForbidden("از اخرین احراز هویت شما 5 دقیقه میگذره دوباره احراز هویت کن")
     if request.method == "POST":
         form = ChangePasswordForm(request.POST, instance=user)
         if form.is_valid():
@@ -448,13 +453,13 @@ def changePassword(request):
             temp = User.objects.get(username=user.username)
             temp.set_password(password)
             temp.save()
+            request.session.pop("user_verified", None)
             return redirect("/account/logout/")
     else:
         form = ChangePasswordForm(instance=user)
     return render(request, "changepassword.html", {"form": form})
 
 
-@csrf_exempt
 @login_required(login_url="/account/login/")
 def deleteAccount(request):
     if request.method == "POST":

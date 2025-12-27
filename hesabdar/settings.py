@@ -117,3 +117,6 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 AUTH_USER_MODEL = 'web.User'
+
+TIMEOUT=300
+MAX_FAIELD_LOGINS=4

@@ -8,6 +8,7 @@
                 <div class="col-4">
                     <form method="post" class="form-control text-center" style="background-color: #F2D56D;" action="/account/verify_code/">
                         <h4><b><big>کد تایید</big></b></h4>
+                        {% csrf_token %}
                         {{ form.as_p }}
                         <button class="btn btn-success" type="submit">تایید</button>
                     </form>

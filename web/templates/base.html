@@ -37,7 +37,12 @@
                                 <ul class="dropdown-menu" style="background-color:#FAE9AA;">
                                     <li><a class="dropdown-item" href="/account/profile/">پروفایل</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="/account/logout/"><button class="btn btn-danger">خروج</button></a></li>
+                                    <li>
+                                        <form action="/account/logout/" method="post" class="text-center">
+                                            {% csrf_token %}
+                                            <button class="btn btn-danger" type="submit">خروج</button>
+                                        </form>
+                                    </li>
                                 </ul>
                             </div>
                         </ul>

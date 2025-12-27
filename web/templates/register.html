@@ -10,6 +10,7 @@
                 <div class="col-6">
                     <form method="post" class="form-control" style="background-color: #F2D56D;">
                         <h3 class="text-center">ثبث نام</h3>
+                        {% csrf_token %}
                         {{ form.as_p }}
                         <button class="btn btn-success" type="submit">ثبت نام</button>
                     </form>

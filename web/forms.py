@@ -1,6 +1,8 @@
 from django import forms
 from .models import User, Expense, Income
 from django.contrib.auth.hashers import check_password
+from django.core.cache import cache
+from django.conf import settings
 import time
 import re
 
@@ -46,14 +48,26 @@ class LoginForm(forms.Form):
     def clean(self):
         cleaned_data = super().clean()
         username = cleaned_data.get('username')
-        user = User.objects.filter(username__iexact = username)
-        if not user:
-            raise forms.ValidationError("نام کاربری وجود نداره اگه حساب نداری یکی بساز.")
-        password = cleaned_data.get("password")
-        result = User.objects.get(username__iexact=username).check_password(password)
-        if not result:
-            raise forms.ValidationError("نام کاربری یا پسورد اشتباه است.")
-        return cleaned_data
+        try:
+            user = User.objects.get(username__iexact = username)
+        except User.DoesNotExist:
+            raise forms.ValidationError("نام کاربری وجود نداره اگه نداری یکی بساز.")
+        else:
+            failed = cache.get(f"failed_{username}", 0)
+            if failed>=settings.MAX_FAIELD_LOGINS:
+                cache.set(f"blocked_{username}", True, timeout=settings.TIMEOUT)
+            blocked = cache.get(f"blocked_{username}")
+            if blocked:
+                raise forms.ValidationError("نام کاربری شما به دلیل لاگین های ناموفق مکرر مدتی مسدود شده است لطفا بعدا امتحان کنید.")
+
+            password = cleaned_data.get("password")
+            result = user.check_password(password)
+            if not result:
+                failed = cache.get(f"failed_{username}", 0) + 1
+                cache.set(f"failed_{username}", failed, timeout=settings.TIMEOUT)
+                raise forms.ValidationError("نام کاربری یا پسورد اشتباه است.")
+            cache.delete(f"failed_{username}")
+            return cleaned_data
 
 
 class ExpenseIncomeForm(forms.ModelForm):
