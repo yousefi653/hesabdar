@@ -1,3 +1,4 @@
-Django>=6.0
-jdatetime>=5.2.0
-matplotlib>=3.10.8
+Django==6.0
+django-ratelimit==4.1.0
+jdatetime==5.2.0
+matplotlib==3.10.8

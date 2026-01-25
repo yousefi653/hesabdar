@@ -64,7 +64,8 @@
                                             </div>
                                                 <div class="modal-footer" style="background-color: #FAE9AA; border-color: black;" >
                                                     <button type="button" class="btn btn-success" data-bs-dismiss="modal">بستن</button>
-                                                    <form method="" action="/account/{{ url_delete }}/{{ item.id }}/">
+                                                    <form method="post" action="/account/{{ url_delete }}/{{ item.id }}/">
+                                                        {% csrf_token %}
                                                         <button type="submit" class="btn btn-danger">حذف</button></a>
                                                     </form>
                                                 </div>

@@ -21,6 +21,11 @@ from matplotlib import pyplot
 
 
 # Create your views here.
+def get_today(request):
+    today = jdatetime.date.today()
+    return {"today": jdatetime.date.strftime(today, "%Y/%m/%d")}
+
+
 def clean(data):
     for item in data:
         item.amount = f"{item.amount:,}"
@@ -116,7 +121,7 @@ def draw_plot(user):
     total_incomes = Income.objects.filter(user=user).aggregate(sum=Sum("amount"))['sum'] or 0
     total_expenses = Expense.objects.filter(user=user).aggregate(sum=Sum('amount'))['sum'] or 0
     balance = total_incomes - total_expenses
-    ave_daily_income = total_incomes / day_in_month or 0
+    ave_daily_income = total_incomes / today.day or 0
     ave_daily_expense = total_expenses / day_in_month or 0
     max_income = Income.objects.filter(user=user).aggregate(max=Max("amount"))['max'] or 0
     max_expense = Expense.objects.filter(user=user).aggregate(max=Max("amount"))['max'] or 0
@@ -367,6 +372,7 @@ def updateExpense(request, pk):
 def deleteExpense(request, pk):
     user = request.user
     expense = get_object_or_404(Expense, user=user, pk=pk)
+    print(f"method: {request.method}")
     if request.method == "POST":
         expense.delete()
         return redirect("/account/expense/")
