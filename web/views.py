@@ -49,23 +49,14 @@ def get_queryset(request, data):
         else:
             data = data.filter(amount__lte=q * -1)
 
-    q = request.GET.get("sort_date")
+    q = request.GET.get("date")
     if q:
         if q == "date":
             data = data.order_by("date")
         elif q == "-date":
             data = data.order_by("-date")
         else:
-            pass
-
-    q = request.GET.get("sort_id")
-    if q:
-        if q == "id":
-            data = data.order_by("id")
-        elif q == "-id":
-            data = data.order_by("-id")
-        else:
-            pass
+            data = data.order_by("date")
 
     return data
 
@@ -372,7 +363,6 @@ def updateExpense(request, pk):
 def deleteExpense(request, pk):
     user = request.user
     expense = get_object_or_404(Expense, user=user, pk=pk)
-    print(f"method: {request.method}")
     if request.method == "POST":
         expense.delete()
         return redirect("/account/expense/")

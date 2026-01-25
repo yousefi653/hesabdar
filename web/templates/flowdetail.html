@@ -27,7 +27,15 @@
                         <tr>
                             <th>عنوان</th>
                             <th>مبلغ (تومان)</th>
-                            <th>تاریخ(میلادی)</th>
+                            <th>
+                                {% if request.GET.date == "date" %}
+                                    <a href="?title={{ request.GET.title}}&amount={{ request.GET.amount }}&date=-date">تاریخ(میلادی)🔻</a>
+                                {% elif request.GET.date == "-date" %}
+                                    <a href="?title={{ request.GET.title}}&amount={{ request.GET.amount }}&date=date">تاریخ(میلادی)🔺</a>
+                                {% else %}
+                                    <a href="?title={{ request.GET.title}}&amount={{ request.GET.amount }}&date=date">تاریخ(میلادی)</a>
+                                {% endif %}
+                            </th>
                             <th>تاریخ(شمسی)</th>
                             <th>زمان</th>
                             <th>آخرین تغییر</th>
