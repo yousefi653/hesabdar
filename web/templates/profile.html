@@ -12,18 +12,62 @@
                         <button class="btn btn-success" type="submit">تغییر بده</button>
                     </form>
                 </div>
+                <div class="col-3">
+                    <a href="/account/add_card/">اگر کارتی نداری یکی بساز</a>
+                    <table class="table table-warning table-striped-columns" border="5" dir="ltr">
+                        <thead>
+                            <th>نام کارت</th>
+                            <th>شماره کارت</th>
+                            <th>مالک کارت</th>
+                            <th>ویرایش</th>
+                            <th>حذف</th>
+                        </thead>
+                        <tbody>
+                            {% for card in cards %}
+                                <tr>
+                                    <td>{{ card.card_name }}</td>
+                                    <td>{{ card.card_number }}</td>
+                                    <td>{{ card.owner }}</td>
+                                    <td><a href="/account/update_card/{{ card.id }}"><button class="btn btn-warning" type="button">ویرایش</button></a></td>
+                                    <td>
+                                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#delete_card_{{ card.id }}">حذف</button>
+                                        <div class="modal fade" id="delete_card_{{ card.id }}" tabindex="-1" aria-labelledby="#delete_card_lable_{{ card.id }}" aria-hidden="true" dir="auto">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content" style="background-color: #F2D56D;">
+                                                    <div class="modal-header" style="border-color: black;">
+                                                        <h1 class="modal-title fs-5" id="delete_card_lable_{ card.id }"><b>حذف کارت</b></h1>
+                                                    </div>
+                                                    <div class="modal-body" style="background-color: #FAE9AA;" >
+                                                        آیا مطمعنی میخوای کارت <b>"{{ card.card_name}} - {{card.card_number}}"</b>رو حذف کنی؟
+                                                    </div>
+                                                    <div class="modal-footer" dir="auto" style="background-color: #FAE9AA;border-color: black;">
+                                                        <form method="post" action="/account/delete_card/{{ card.id }}/">
+                                                            {% csrf_token %}
+                                                            <button type="submit" class="btn btn-danger">حذف</button>
+                                                        </form>
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close">بازگشت</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+        </div>
+            <div class="row">
                 <div class="col">
-                    <form action="/account/request_change_password/" method="post">
+                    <br><form action="/account/request_change_password/" method="post">
                         {% csrf_token %}
                         <p>برای تغییر رمز عبور خود <button type="submit">کلیک</button>کنید </p>
                     </form>
-                    <br>
                     <label for="delete_account">حذف حساب:</label>
 
                     <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#exampleModal">
                     حذف
                     </button>
-
                     <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content" style="background-color: #FAE9AA;">
@@ -45,6 +89,5 @@
                     </div>
                 </div>
             </div>
-        </div>
     </div>
 {% endblock %}

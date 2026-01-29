@@ -1,5 +1,5 @@
 from django import forms
-from .models import User, Expense, Income
+from .models import User, Expense, Income, BankCard
 from django.contrib.auth.hashers import check_password
 from django.core.cache import cache
 from django.conf import settings
@@ -72,9 +72,10 @@ class LoginForm(forms.Form):
 
 class ExpenseIncomeForm(forms.ModelForm):
     text = forms.CharField(label="توضیحات",required=False ,widget=forms.Textarea(attrs={"placeholder": "توضیحات مربوط به عنوان خود را وارد کنید (اجباری نیست)", 'class': 'form-control', "rows":1}))
+    card = forms.ModelChoiceField(queryset=BankCard.objects.none(), widget=forms.Select(attrs={"class": "form-control"}), label='کارت')
     class Meta:
         model = Income
-        fields = ("title", "text", "amount", "date", "time")
+        fields = ("title", "text", "amount", "date", "time", "card")
         labels = {"title":"عنوان", "text":"توضیحات", "amount":"مبلغ", "date":"تاریخ", "time":"زمان"}
         error_messages = {
             "date": {"invalid": "تاریخ باید به فرمت (روز-ماه-سال) باشد"}
@@ -84,8 +85,13 @@ class ExpenseIncomeForm(forms.ModelForm):
             "text": forms.Textarea(attrs={"placeholder": "توضیحات مربوط به عنوان خود را وارد کنید (اجباری نیست)", 'class': 'form-control', "rows":1}),
             "amount": forms.NumberInput(attrs={"class": "form-control", 'placeholder': "مبلغ را وارد کنید"}),
             "date": forms.DateInput(attrs={"class":'form-control', 'placeholder': "تاریخ مورد نظر را وارد کنید(پیشفرض امروز در نظر گرفته میشود)(میلادی وارد شود!!)"}),
-            "time": forms.TimeInput(attrs={"class": "form-control", 'placeholder': "زمان مورد نظر خود را وارد کنید(پیشفرض زمان حال در نظر گرفته میشود)"})
+            "time": forms.TimeInput(attrs={"class": "form-control", 'placeholder': "زمان مورد نظر خود را وارد کنید(پیشفرض زمان حال در نظر گرفته میشود)"}),
         }
+        
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user")
+        super().__init__(*args, **kwargs)
+        self.fields['card'].queryset = BankCard.objects.filter(user=user)
 
     def clean_amount(self):
         super().clean()
@@ -156,18 +162,19 @@ class VerifyCodeForm(forms.Form):
         return code
     
 
-# class VerifyPersonForm(forms.Form):
-#     code = forms.CharField(label="کد", widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "کد ارسال شده به ایمیل خود را وارد کنید."}))
+class Card(forms.ModelForm):
+    class Meta:
+        model = BankCard
+        fields = ("card_name", "card_number", "owner", )
+        labels = {"card_name": "نام کارت", "card_number": "شماره کارت", "owner": "مالک کارت" }
+        widgets = {
+            "card_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "نام بانک کارت خود را وارد کنید"}),
+            "card_number": forms.TextInput(attrs={"class":"form-control", "placeholder": "شماره کارت خود را وارد کنید."}),
+            "owner": forms.TextInput(attrs={"class": "form-control", "placeholder": "نام مالک کارت را وارد کنید"})
+        }
 
-#     def __init__(self, *args, verify_code=None, expire_time=None, **kwrags):
-#         super().__init__(*args, **kwrags)
-#         self.verify_code = verify_code
-#         self.expire_time = expire_time
-
-#     def clean_code(self):
-#         code = self.cleaned_data.get("code")
-#         if time.time() > self.expire_time:
-#             raise forms.ValidationError("کد شما منقضی شده لطفا کد جدید را وارد کنید")
-#         elif not code == self.verify_code:
-#             raise forms.ValidationError("کد وارد شده اشتباه است")
-#         return code
+    def clean_card_number(self):
+        card_number = self.cleaned_data.get("card_number")
+        if len(card_number)>16 or len(card_number)<16:
+            raise forms.ValidationError("شماره کارت باید 16 رقم باشد")
+        return card_number

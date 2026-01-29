@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block user %}{{ request.user.username }}{% endblock %}
+
+{% block content %}
+    <div dir="auto">
+        <h2><b><big>{{ title }}</big></b></h2>
+        <p><b>در این بخش میتونی کارت های خودت رو {{ info }} کنی</b></p>
+        <div class="container">
+            <div class="row">
+                <div class="col-6">
+                    <form method="post" class="form-control" style="background-color: #F2D56D;">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-success">{{ button }}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

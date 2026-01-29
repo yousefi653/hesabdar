@@ -37,6 +37,7 @@ def clean(data):
 
 
 def get_queryset(request, data):
+
     q = request.GET.get("title")
     if q:
         data = data.filter(title__contains=q)
@@ -86,11 +87,11 @@ def gen_code():
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
-def draw_plot(user):
+def draw_plot(user, card):
     today = jdatetime.date.today()
     day_in_month = jdatetime.j_days_in_month[today.month - 1]
 
-    incomes = Income.objects.filter(user=user, jdate__contains=f"/{today.month}/")
+    incomes = Income.objects.filter(user=user, card=card, jdate__contains=f"/{today.month}/")
     temp = [0 for _ in range(day_in_month)]
     for day in range(1, day_in_month + 1):
         sum = incomes.filter(jdate__contains=f"{today.month}/{day:02d}").aggregate(sum=Sum("amount"))
@@ -99,7 +100,7 @@ def draw_plot(user):
     del incomes
     incomes = temp.copy()
 
-    expenses = Expense.objects.filter(user=user, jdate__contains=f"/{today.month}/")
+    expenses = Expense.objects.filter(user=user, card=card, jdate__contains=f"/{today.month}/")
     temp = [0 for _ in range(day_in_month)]
     for day in range(1, day_in_month + 1):
         sum = expenses.filter(jdate__contains=f"{today.month}/{day:02d}").aggregate(sum=Sum('amount'))
@@ -109,13 +110,13 @@ def draw_plot(user):
     expenses = temp.copy()
 
     ## یکسری امار معمولی
-    total_incomes = Income.objects.filter(user=user).aggregate(sum=Sum("amount"))['sum'] or 0
-    total_expenses = Expense.objects.filter(user=user).aggregate(sum=Sum('amount'))['sum'] or 0
+    total_incomes = Income.objects.filter(user=user, card=card).aggregate(sum=Sum("amount"))['sum'] or 0
+    total_expenses = Expense.objects.filter(user=user, card=card).aggregate(sum=Sum('amount'))['sum'] or 0
     balance = total_incomes - total_expenses
     ave_daily_income = total_incomes / today.day or 0
-    ave_daily_expense = total_expenses / day_in_month or 0
-    max_income = Income.objects.filter(user=user).aggregate(max=Max("amount"))['max'] or 0
-    max_expense = Expense.objects.filter(user=user).aggregate(max=Max("amount"))['max'] or 0
+    ave_daily_expense = total_expenses / today.day or 0
+    max_income = Income.objects.filter(user=user, card=card).aggregate(max=Max("amount"))['max'] or 0
+    max_expense = Expense.objects.filter(user=user, card=card).aggregate(max=Max("amount"))['max'] or 0
 
     contenxt = {"total_incomes": f"{total_incomes:,}",
                 "total_expense": f"{total_expenses:,}",
@@ -248,6 +249,10 @@ def logout(request):
 @login_required(login_url="/account/login/")
 def home(request):
     if request.method == "GET":
+        try: 
+            card = BankCard.objects.filter(user=request.user)[0]
+        except IndexError:
+            pass
         return render(request, "home.html")
 
 
@@ -255,10 +260,17 @@ def home(request):
 def expense(request):
     if request.method == "GET":
         user = request.user
-        data = Expense.objects.filter(user=user)
-        data = get_queryset(request, data)
+        card_id = request.GET.get("card_id")
+        if card_id:
+            card = BankCard.objects.get(id=card_id, user=user)
+        else:
+            card = BankCard.objects.filter(user=user).first()
+
+        data = Expense.objects.filter(user=user, card=card)
+        data = get_queryset(request, data)  
         data = clean(data)
         contenxt = {
+            "cards": BankCard.objects.filter(user=request.user),
             "data": data,
             "title_fa": "خرج",
             "title_en": "expense",
@@ -271,10 +283,15 @@ def expense(request):
 def income(request):
     if request.method == "GET":
         user = request.user
-        data = Income.objects.filter(user=user)
+        if request.GET.get("card_id"):
+            card = BankCard.objects.get(id=request.GET.get("card_id"), user=user)
+        else:
+            card = BankCard.objects.filter(user=user).first()
+        data = Income.objects.filter(user=user, card=card)
         data = get_queryset(request, data)
         data = clean(data)
         contenxt = {
+            "cards": BankCard.objects.filter(user=request.user),
             "data": data,
             "title_fa": "درآمد",
             "title_en": "income",
@@ -287,7 +304,7 @@ def income(request):
 @login_required(login_url="/account/login/")
 def createExpense(request):
     if request.method == "POST":
-        form = ExpenseIncomeForm(request.POST)
+        form = ExpenseIncomeForm(request.POST, user=request.user)
         if form.is_valid():
             user = request.user
             title = form.cleaned_data.get("title")
@@ -296,14 +313,15 @@ def createExpense(request):
             date = form.cleaned_data.get("date") or datetime.date.today()
             jdate = jdatetime.date.fromgregorian(date=date).strftime("%Y/%m/%d")
             time = form.cleaned_data.get("time") or datetime.datetime.now().time()
+            card = form.cleaned_data.get("card")
             expense = Expense.objects.create(
-                user=user, title=title, text=text, amount=amount, date=date, time=time, jdate=jdate
+                user=user, title=title, text=text, amount=amount, date=date, time=time, jdate=jdate, card=card
             )
             if expense:
                 return redirect(to="/account/expense/")
     else:
         now = datetime.datetime.now()
-        form = ExpenseIncomeForm(initial={"date": now.date(), "time": now.time()})
+        form = ExpenseIncomeForm(initial={"date": now.date(), "time": now.time()}, user=request.user)
     context = {"form": form, "title": "خرج"}
     return render(request, "flowcash.html", context=context)
 
@@ -312,7 +330,7 @@ def createExpense(request):
 @login_required(login_url="/account/login/")
 def createIncome(request):
     if request.method == "POST":
-        form = ExpenseIncomeForm(request.POST)
+        form = ExpenseIncomeForm(request.POST, user=request.user)
         if form.is_valid():
             user = request.user
             title = form.cleaned_data.get("title")
@@ -321,14 +339,15 @@ def createIncome(request):
             date = form.cleaned_data.get("date") or datetime.date.today()
             jdate = jdatetime.date.fromgregorian(date=date).strftime("%Y/%m/%d")
             time = form.cleaned_data.get("time") or datetime.datetime.now().time()
+            card = form.cleaned_data.get("card")
             expense = Income.objects.create(
-                user=user, title=title, text=text, amount=amount, date=date, time=time, jdate=jdate
+                user=user, title=title, text=text, amount=amount, date=date, time=time, jdate=jdate, card=card
             )
             if expense:
                 return redirect(to="/account/income/")
     else:
         now = datetime.datetime.now()
-        form = ExpenseIncomeForm(initial={"date": now.date(), "time": now.time()})
+        form = ExpenseIncomeForm(initial={"date": now.date(), "time": now.time()}, user=request.user)
     context = {"form": form, "title": "درآمد"}
     return render(request, "flowcash.html", context=context)
 
@@ -340,7 +359,7 @@ def updateExpense(request, pk):
     expense = get_object_or_404(Expense, user=user, pk=pk)
 
     if request.method == "POST":
-        form = ExpenseIncomeForm(request.POST)
+        form = ExpenseIncomeForm(request.POST, user=user)
         if form.is_valid():
             expense.title = form.cleaned_data.get("title")
             expense.text = form.cleaned_data.get("text")
@@ -351,7 +370,7 @@ def updateExpense(request, pk):
             expense.save()
             return redirect("/account/expense/")
     else:
-        form = ExpenseIncomeForm(instance=expense)
+        form = ExpenseIncomeForm(instance=expense, user=user)
     return render(
         request,
         "flowupdate.html",
@@ -376,7 +395,7 @@ def updateIncome(request, pk):
     income = get_object_or_404(Income, user=user, pk=pk)
 
     if request.method == "POST":
-        form = ExpenseIncomeForm(request.POST)
+        form = ExpenseIncomeForm(request.POST, user=user)
         if form.is_valid():
             income.title = form.cleaned_data.get("title")
             income.text = form.cleaned_data.get("text")
@@ -387,7 +406,7 @@ def updateIncome(request, pk):
             income.save()
             return redirect("/account/income/")
     else:
-        form = ExpenseIncomeForm(instance=income)
+        form = ExpenseIncomeForm(instance=income, user=user)
     return render(request, "flowupdate.html", {"form": form, "title_fa": "درآمد", "title_en": "income"})
 
 
@@ -411,7 +430,8 @@ def profile(request):
             return redirect("/account/profile/")
     else:
         form = ProfileForm(instance=user)
-    return render(request, "profile.html", {"form": form})
+        cards = BankCard.objects.filter(user=request.user)
+    return render(request, "profile.html", {"form": form, "cards": cards})
 
 
 @ratelimit(key='user', rate="3/h", block=True)
@@ -478,5 +498,51 @@ def deleteAccount(request):
 def statistics(request):
     if request.method == 'GET':
         user = request.user
-        context = draw_plot(user)
+        if request.GET.get("card_id"):
+            card = get_object_or_404(BankCard, id=request.GET.get("card_id"), user=user)
+        else:
+            card = BankCard.objects.filter(user=user).first()
+        context = draw_plot(user, card)
+        context["cards"] = BankCard.objects.filter(user=user)
         return render(request, "statistics.html", context)
+    
+
+@login_required(login_url="/account/login/")
+def add_card(request):
+    if request.method == "POST":
+        form = Card(request.POST)
+        if form.is_valid():
+            card_name = form.cleaned_data.get("card_name")
+            card_number = form.cleaned_data.get("card_number")
+            owner = form.cleaned_data.get("owner")
+            BankCard.objects.create(user=request.user, card_name=card_name, card_number=card_number, owner=owner)
+            return redirect("/account/profile/")
+    else:
+        form = Card()
+    return render(request, "card.html", {"form": form, "button": "اضافه کن", "title": "اضافه کردن کارت", "info": "اضافه"})
+
+
+@login_required(login_url="/account/login/")
+def update_card(request, pk):
+    instance = get_object_or_404(BankCard, user=request.user, id=pk)
+    if request.method == "POST":
+        form = Card(request.POST, instance=instance)
+        if form.is_valid():
+            instance.card_name = form.cleaned_data.get("card_name")
+            instance.card_number = form.cleaned_data.get("card_number")
+            instance.owner = form.cleaned_data.get("owner")
+            instance.save()
+            return redirect("/account/profile/")
+    else:
+        form = Card(instance=instance)
+    return render(request, "card.html", {"form": form, "button": "تغییر بده", "title": "وایراش کردن کارت", "info": "ویرایش"})
+
+
+login_required(login_url="/account/login/")
+def delete_card(request, pk):
+    if request.method == "POST":
+        card = get_object_or_404(BankCard,user=request.user, id=pk)
+        card.delete()
+        return redirect("/account/profile/")
+    else:
+        return HttpResponseForbidden()

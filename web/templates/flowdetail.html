@@ -16,6 +16,12 @@
                     <input type="text" name="title" id="search" placeholder="جستجو بر اساس عنوان {{title_fa }}">
                     <label for="amount"><b>مبلغ:</b></label>
                     <input type="number" name="amount" id="amount" placeholder="قیمت کمتر از 10 -10بیشتر 10">
+                    <label for="cards"><b>کارت:</b></label>
+                    <select name="card_id">
+                        {% for card in cards %}
+                            <option value="{{ card.id }}">{{ card }}</option>
+                        {% endfor %}
+                    </select>
                     <button class="btn btn-success" type="submit">جستجو</button>
                 </form>
             </div>
@@ -40,6 +46,7 @@
                             <th>زمان</th>
                             <th>آخرین تغییر</th>
                             <th>توضیحات</th>
+                            <th>کارت</th>
                             <th>تغییر</th>
                             <th>حذف</th>
                         </tr>
@@ -54,17 +61,18 @@
                                 <td>{{ item.time }}</td>
                                 <td>{{ item.updated_time }}</td>
                                 <td>{{ item.text }}</td>
+                                <td>{{ item.card }}</td>
                                 <td><a href="/account/update_{{ title_en }}/{{ item.id }}/"><button class="btn btn-warning">ادیت</button></a></td>
                                 <td>
-                                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#delete_{{ item.id }}">
                                     حذف
                                     </button>
 
-                                    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                    <div class="modal fade" id="delete_{{ item.id }}" tabindex="-1" aria-labelledby="delete_lable_{{ item.id }}" aria-hidden="true">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
                                             <div class="modal-header" style="background-color: #F2D56D;border-color: black;">
-                                                <h1 class="modal-title fs-5" id="exampleModalLabel"><big><b>حذف {{title_fa }}</b></big></h1>
+                                                <h1 class="modal-title fs-5" id="delete_{{ item.id }}"><big><b>حذف {{title_fa }}</b></big></h1>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body"style="background-color: #FAE9AA;">
@@ -74,7 +82,7 @@
                                                     <button type="button" class="btn btn-success" data-bs-dismiss="modal">بستن</button>
                                                     <form method="post" action="/account/{{ url_delete }}/{{ item.id }}/">
                                                         {% csrf_token %}
-                                                        <button type="submit" class="btn btn-danger">حذف</button></a>
+                                                        <button type="submit" class="btn btn-danger">حذف</button>
                                                     </form>
                                                 </div>
                                             </div>

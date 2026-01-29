@@ -3,40 +3,71 @@
 {% block user %}{{ request.user.username }}{% endblock %}
 
 {% block content %}
+    <div class="container text-center">
+        <div class="row">
+            <div class="col d-flex justify-content">
+                <label for="card"><b>کارت:</b></label>
+                <form method="get">
+                    <select name="card_id" id="card">
+                        {% for card in cards %}
+                            <option value="{{ card.id }}">{{ card.card_number }}-{{ card.card_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-success btn-sm">آمار اینو بگیر</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <hr>
     <div class="container">
         <div class="row g-3">
             <div class="col-lg-6 col-12">
-                {% load static %}
-                <img src="{% static 'web/img/chart.png' %}" alt="chart" class="img-fluid">
+                <div class="card shadow">
+                    <div class="card-body">
+                        {% load static %}
+                        <img src="{% static 'web/img/chart.png' %}" alt="chart" class="img-fluid">
+                
+                    </div>
+                </div>
             </div>
             <div class="col-lg-6 col-12">
-                <h3 class="text-center">آمار ماهانه(تومان)</h3>
-                <table class="table table-bordered table-warning table-stripted-columns"> 
-                    <thead>
-                        <tr>
-                            <th>کل درآمد</th>
-                            <th>کل خرج</th>
-                            <th>تراز کل</th>
-                            <th>میانگین درآمد روزانه(تا امروز)</th>
-                            <th>میانگین خرج روزانه(تا امروز)</th>
-                            <th>بیشترین درآمد</th>
-                            <th>بیشترین خرج</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>{{ total_incomes }}</td>
-                            <td>{{ total_expense }}</td>
-                            <td>{{ balance }}</td>
-                            <td>{{ ave_daily_income }}</td>
-                            <td>{{ ave_daily_expense }}</td>
-                            <td>{{ max_income }}</td>
-                            <td>{{ max_expense }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <h3 class="text-center"><b>آمار ماهانه(تومان)</b></h3>
+                <div class="card shadow-sm" dir="auto">
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>کل درآمد: </span>
+                                <strong>{{ total_incomes }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>کل خرج: </span>
+                                <strong>{{ total_expense }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>تراز کل: </span>
+                                <strong>{{ balance }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>میانگین درآمد روزانه (تا امروز): </span>
+                                <strong>{{ ave_daily_income }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>میانگین خرج روزانه (تا امروز): </span>
+                                <strong>{{ ave_daily_expense }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>بیشترین درآمد: </span>
+                                <strong>{{ max_income }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>بیشترین خرج:</span>
+                                <strong>{{ max_expense }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
             </div>
         </div>  
-
     </div>
 {% endblock %}
